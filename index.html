@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Оператор — Управляй нейросетью, контролируй код</title>
+<meta name="description" content="Практический курс «AI-Оператор». Промпт вместо кода. Контроль там, где это важно.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --bg: #0a0512;
+    --bg-2: #140a28;
+    --ink-2: #1a0e33;
+    --void: #170c2e;
+    --void-2: #1e1140;
+    --surface: rgba(255,255,255,0.035);
+    --glass: rgba(157,92,255,0.07);
+    --iris: #9d5cff;
+    --iris-2: #7c3aed;
+    --iris-light: #c9a6ff;
+    --lilac: #c9b6ff;
+    --mist: #f5f1ff;
+    --fog: #a598c9;
+    --mint: #8fe3c0;
+    --bad: #ff7a90;
+    --border: rgba(201,182,255,0.14);
+    --border-strong: rgba(157,92,255,0.45);
+    --glow-sm: 0 0 24px -4px rgba(157,92,255,0.55);
+    --glow-lg: 0 24px 70px -16px rgba(157,92,255,0.45);
+    --font-display: 'Unbounded', 'Segoe UI', sans-serif;
+    --font-body: 'Manrope', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    --ease: cubic-bezier(.16,.84,.44,1);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--mist);
+    font-family: var(--font-body);
+    line-height:1.6;
+    overflow-x: hidden;
+  }
+  img{max-width:100%;}
+  h1,h2,h3{font-family: var(--font-display); text-wrap: balance; margin:0; letter-spacing:-0.01em;}
+  p{margin:0;}
+  a{color:inherit;}
+  button{font:inherit;}
+  ::selection{ background: rgba(157,92,255,0.35); color:#fff; }
+
+  .wrap{max-width: 1160px; margin-inline:auto; padding-inline: 24px; position:relative;}
+
+  /* ---------- ambient mesh background ---------- */
+  .bg-mesh{ position:fixed; inset:0; z-index:-1; overflow:hidden; background: radial-gradient(120% 90% at 15% -10%, #23103f 0%, var(--bg) 45%, #060309 100%); }
+  .bg-mesh span{ position:absolute; border-radius:50%; filter: blur(90px); opacity:0.55; mix-blend-mode: screen; }
+  .bg-mesh .b1{ width:520px; height:520px; top:-120px; left:-80px; background: radial-gradient(circle, var(--iris), transparent 70%); animation: drift1 26s ease-in-out infinite alternate; }
+  .bg-mesh .b2{ width:460px; height:460px; top:35%; right:-140px; background: radial-gradient(circle, #5b21b6, transparent 70%); animation: drift2 32s ease-in-out infinite alternate; }
+  .bg-mesh .b3{ width:420px; height:420px; bottom:-160px; left:20%; background: radial-gradient(circle, #4c0ea3, transparent 70%); animation: drift3 22s ease-in-out infinite alternate; }
+  @keyframes drift1{ to{ transform: translate(60px, 80px) scale(1.15); } }
+  @keyframes drift2{ to{ transform: translate(-70px, -40px) scale(1.1); } }
+  @keyframes drift3{ to{ transform: translate(40px, -60px) scale(1.2); } }
+
+  .cursor-glow{ position:fixed; width:420px; height:420px; border-radius:50%; pointer-events:none; z-index:0; left:0; top:0; transform:translate(-50%,-50%); background: radial-gradient(circle, rgba(157,92,255,0.16), transparent 70%); opacity:0; transition: opacity .4s ease; }
+
+  .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--lilac);
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:''; width:7px; height:7px; border-radius:50%; background: var(--iris); box-shadow: 0 0 10px 3px var(--iris);}
+
+  .btn{
+    font-family: var(--font-body);
+    font-weight:700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 30px;
+    cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+    transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--iris), var(--iris-2));
+    color: #fff;
+    box-shadow: 0 8px 30px -6px rgba(157,92,255,0.65);
+  }
+  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 14px 40px -6px rgba(157,92,255,0.85);}
+  .btn-outline{
+    background: rgba(255,255,255,0.02);
+    color: var(--lilac);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+  .btn-outline:hover{ background: rgba(157,92,255,0.1); border-color: var(--iris);}
+  .btn:focus-visible{ outline: 2px solid var(--iris-light); outline-offset: 3px; }
+  .btn-sm{ padding:10px 20px; font-size:0.88rem; }
+
+  /* ---------- header ---------- */
+  header{
+    position: sticky; top:0; z-index:50;
+    padding-block: 16px;
+    background: transparent;
+    backdrop-filter: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .3s ease, background .3s ease, backdrop-filter .3s ease;
+  }
+  header.scrolled{ border-bottom-color: var(--border); background: rgba(10,5,18,0.45); backdrop-filter: blur(16px) saturate(140%); }
+  .nav{ display:flex; align-items:center; justify-content:space-between; gap:24px;}
+  .logo{ display:flex; align-items:center; gap:10px; font-family: var(--font-display); font-weight:700; font-size:1.02rem; white-space:nowrap;}
+  .logo-mark{width:30px; height:30px; flex-shrink:0;}
+  .nav-links{ display:flex; align-items:center; gap:28px; font-size:0.92rem; color: var(--fog); }
+  .nav-links a{ transition: color .2s ease; position:relative; }
+  .nav-links a:hover{ color: var(--mist); }
+  .nav-links a::after{ content:''; position:absolute; left:0; right:0; bottom:-6px; height:2px; background: var(--iris); transform: scaleX(0); transform-origin:left; transition: transform .25s var(--ease); }
+  .nav-links a:hover::after{ transform: scaleX(1); }
+  .nav-cta{ display:flex; align-items:center; gap:12px; }
+
+  /* ---------- generic reveal ---------- */
+  [data-reveal]{ opacity:0; transform: translateY(28px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  [data-reveal].is-visible{ opacity:1; transform: translateY(0); }
+  [data-reveal-group] > *{ opacity:0; transform: translateY(20px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+  [data-reveal-group].is-visible > *{ opacity:1; transform: translateY(0); }
+  [data-reveal-group].is-visible > *:nth-child(1){ transition-delay: .02s; }
+  [data-reveal-group].is-visible > *:nth-child(2){ transition-delay: .1s; }
+  [data-reveal-group].is-visible > *:nth-child(3){ transition-delay: .18s; }
+  [data-reveal-group].is-visible > *:nth-child(4){ transition-delay: .26s; }
+  [data-reveal-group].is-visible > *:nth-child(5){ transition-delay: .34s; }
+
+  @media (prefers-reduced-motion: reduce){
+    [data-reveal], [data-reveal-group] > *{ opacity:1 !important; transform:none !important; transition:none !important; }
+    .bg-mesh span{ animation: none !important; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    display:grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items:center;
+    gap: 40px;
+    padding-block: 56px 90px;
+  }
+  .hero h1{ font-size: clamp(2.6rem, 5vw, 4.4rem); font-weight:800; margin-top:18px; }
+  .hero h1 .grad{ background: linear-gradient(120deg, var(--iris-light), var(--iris) 60%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero .tagline{
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    color: var(--lilac);
+    margin-top:18px;
+    font-weight:600;
+  }
+  .hero p.desc{
+    margin-top: 20px;
+    color: var(--fog);
+    max-width: 54ch;
+    font-size: 1.02rem;
+  }
+  .hero-cta{ margin-top: 34px; display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+  .hero-stats{ display:flex; gap:28px; margin-top:40px; flex-wrap:wrap; }
+  .hero-stats div b{ display:block; font-family:var(--font-display); font-size:1.5rem; color:var(--mist); }
+  .hero-stats div span{ font-size:0.82rem; color:var(--fog); }
+  .hero-visual{ display:flex; justify-content:center; position:relative; }
+  .hero-visual .float-chip{
+    position:absolute; font-family: var(--font-mono); font-size:0.78rem; font-weight:600;
+    background: var(--glass); border:1px solid var(--border-strong); border-radius: 14px;
+    padding:8px 14px; backdrop-filter: blur(10px); box-shadow: var(--glow-sm);
+    animation: chipfloat 5s ease-in-out infinite;
+  }
+  .hero-visual .chip-80{ top:6%; left:-4%; color: var(--iris-light); animation-delay:0s; }
+  .hero-visual .chip-20{ bottom:14%; right:-6%; color: var(--mint); animation-delay:1.4s; }
+  @keyframes chipfloat{ 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-10px);} }
+  .otto-wrap svg{ width: min(340px, 78vw); filter: drop-shadow(0 24px 60px rgba(157,92,255,0.45)); cursor:pointer; }
+
+  /* tentacle + head motion */
+  @media (prefers-reduced-motion: no-preference){
+    .otto-wrap .tentacle{ animation: idle-wiggle 4.5s ease-in-out infinite; transform-origin: top center; }
+    .otto-wrap .t2{ animation-delay: .12s; } .otto-wrap .t3{ animation-delay: .24s; }
+    .otto-wrap .t4{ animation-delay: .06s; } .otto-wrap .t5{ animation-delay: .18s; } .otto-wrap .t6{ animation-delay: .3s; }
+    .otto-wrap svg:hover .tentacle{ animation-duration: 1.3s; }
+    .otto-wrap .head-group{ animation: bob 3.6s ease-in-out infinite; }
+    .otto-wrap svg:hover .head-group{ animation-duration: 1.3s; }
+    .chip-dot{ animation: pulse 2.2s ease-in-out infinite; }
+  }
+  @keyframes idle-wiggle{ 0%,100%{ transform: rotate(0deg);} 50%{ transform: rotate(3deg);} }
+  @keyframes wiggle{ 0%,100%{ transform: rotate(0deg); } 50%{ transform: rotate(8deg); } }
+  @keyframes bob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-6px); } }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+  .pupil{ transition: transform .12s linear; }
+
+  /* ---------- generic section ---------- */
+  section{ padding-block: 64px; position:relative; }
+  .section-head{ max-width: 640px; margin-bottom: 40px;}
+  .section-head h2{ font-size: clamp(1.7rem, 3vw, 2.5rem); margin-top:14px;}
+  .section-head p{ color: var(--fog); margin-top:16px; font-size:1.02rem;}
+  .section-head.center{ margin-inline:auto; text-align:center; }
+
+  .glass-card{
+    background: linear-gradient(160deg, rgba(157,92,255,0.08), rgba(157,92,255,0.02));
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ---------- spotlight hover cards ---------- */
+  .spot-card{
+    position:relative; isolation:isolate; overflow:hidden;
+    background: var(--void); border:1px solid var(--border); border-radius:20px;
+    transition: transform .25s var(--ease), border-color .25s ease, box-shadow .25s ease;
+  }
+  .spot-card::before{
+    content:''; position:absolute; inset:0; z-index:-1; opacity:0;
+    background: radial-gradient(280px circle at var(--mx,50%) var(--my,50%), rgba(157,92,255,0.22), transparent 70%);
+    transition: opacity .3s ease;
+  }
+  .spot-card:hover, .spot-card:focus-within{ transform: translateY(-6px); border-color: var(--border-strong); box-shadow: var(--glow-lg); }
+  .spot-card:hover::before, .spot-card:focus-within::before{ opacity:1; }
+
+  /* ---------- formula 80/20 ---------- */
+  .formula-intro{ max-width:70ch; color:var(--mist); font-size:1.08rem; margin-bottom:36px; }
+  .ratio-bar{ display:flex; height:64px; border-radius:18px; overflow:hidden; border:1px solid var(--border); background:var(--void); }
+  .ratio-seg{ position:relative; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:1.3rem; color:#fff; transform: scaleX(0); transform-origin:left; transition: transform 1.1s var(--ease); }
+  .ratio-seg.is-visible{ transform: scaleX(1); }
+  .seg-80{ width:80%; background: linear-gradient(120deg, var(--iris-2), var(--iris)); }
+  .seg-20{ width:20%; background: linear-gradient(120deg, #2b1a52, #402a75); border-left:1px solid var(--border-strong); }
+  .ratio-labels{ display:flex; justify-content:space-between; margin-top:10px; font-family:var(--font-mono); font-size:0.78rem; color:var(--fog); }
+  .formula-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:32px; }
+  .formula-card{ padding:28px; }
+  .formula-card .pct{ font-family:var(--font-display); font-size:2.2rem; font-weight:800; color:var(--iris-light); }
+  .formula-card.minor .pct{ color:var(--mint); }
+  .formula-card h3{ margin-top:8px; font-size:1.1rem; }
+  .formula-card ul{ margin:16px 0 0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .formula-card li{ display:flex; gap:10px; align-items:flex-start; color:var(--fog); font-size:0.94rem; }
+  .formula-card li svg{ flex-shrink:0; margin-top:3px; }
+
+  /* ---------- pipeline ---------- */
+  .pipeline{ display:grid; grid-template-columns:repeat(5,1fr); gap:0; position:relative; margin-top:16px; }
+  .pipeline::before{ content:''; position:absolute; top:34px; left:6%; right:6%; height:2px; background: linear-gradient(90deg, transparent, var(--border-strong) 10%, var(--border-strong) 90%, transparent); }
+  .pipe-step{ display:flex; flex-direction:column; align-items:center; text-align:center; padding-inline:10px; opacity:0; transform:translateY(16px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+  .pipe-step.is-visible{ opacity:1; transform:translateY(0); }
+  .pipe-num{
+    width:68px; height:68px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background: var(--void-2); border:1px solid var(--border-strong); box-shadow: var(--glow-sm);
+    margin-bottom:16px; position:relative; z-index:1;
+  }
+  .pipe-step h3{ font-size:0.98rem; }
+  .pipe-step p{ margin-top:8px; color:var(--fog); font-size:0.85rem; }
+  .pipe-arrow{ display:none; }
+
+  /* ---------- prompting compare ---------- */
+  .compare-tabs{ display:none; gap:10px; margin-bottom:20px; }
+  .compare-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:stretch; }
+  .compare-card{ border-radius:22px; border:1px solid var(--border); overflow:hidden; transition: transform .3s var(--ease), opacity .3s ease; background: var(--void); }
+  .compare-head{ padding:18px 22px; display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:1rem; }
+  .compare-bad .compare-head{ background: rgba(255,122,144,0.12); color:#ffb3c0; }
+  .compare-good .compare-head{ background: rgba(143,227,192,0.12); color: var(--mint); }
+  .compare-body{ padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .compare-row{ display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; }
+  .compare-row svg{ flex-shrink:0; margin-top:2px; }
+  .compare-row b{ font-family:var(--font-mono); font-weight:600; color:var(--lilac); display:block; font-size:0.76rem; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:3px; }
+  .compare-bad .compare-row span{ color:#d9a3ae; }
+  .compare-good .compare-row span{ color:var(--fog); }
+  .compare-prompt{ font-family:var(--font-mono); font-size:0.82rem; background:var(--ink-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-top:4px; line-height:1.7; white-space:pre-wrap; }
+  .tok-key{ color: var(--iris-light); font-weight:600; }
+  .tok-str{ color: var(--mint); }
+  .tok-comment{ color:#6f668c; }
+
+  /* ---------- platforms ---------- */
+  .platforms-grid{ display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+  .platform-card{ padding:34px; display:flex; flex-direction:column; gap:18px; }
+  .platform-icon{ width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, rgba(157,92,255,0.28), rgba(157,92,255,0.06)); }
+  .platform-card h3{ font-size:1.3rem; }
+  .platform-card .sub{ font-family:var(--font-mono); font-size:0.8rem; color:var(--iris-light); }
+  .platform-card ul{ list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  .platform-card li{ display:flex; gap:10px; align-items:flex-start; color:var(--fog); font-size:0.94rem; }
+  .platform-card li svg{ flex-shrink:0; margin-top:3px; }
+
+  /* ---------- coding basics ---------- */
+  .basics-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
+  .basics-card{ position:relative; padding:26px 22px; min-height:190px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; }
+  .basics-card .icon{ width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, rgba(157,92,255,0.25), rgba(157,92,255,0.05)); margin-bottom:16px; }
+  .basics-card h3{ font-size:1rem; }
+  .basics-more{
+    position:absolute; inset:auto 0 0 0; padding:18px 22px; background: linear-gradient(0deg, rgba(23,12,46,0.98), rgba(23,12,46,0.9));
+    border-top:1px solid var(--border-strong); transform: translateY(100%); transition: transform .35s var(--ease);
+    font-family:var(--font-mono); font-size:0.78rem; color:var(--lilac);
+  }
+  .basics-card:hover .basics-more, .basics-card:focus-within .basics-more{ transform: translateY(0); }
+
+  /* ---------- otto section ---------- */
+  .otto-section{
+    display:grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    align-items:center;
+    gap: 40px;
+    background: radial-gradient(80% 100% at 0% 50%, rgba(157,92,255,0.14), transparent);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 48px;
+  }
+  .otto-figure{ display:flex; justify-content:center; }
+  .bubble{
+    position:relative;
+    background: var(--void-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px 28px;
+    font-size:1.15rem;
+    font-weight:600;
+    color: var(--mist);
+  }
+  .bubble span{ display:block; margin-top:12px; font-family: var(--font-mono); font-weight:400; font-size:0.85rem; color: var(--lilac);}
+
+  /* ---------- form ---------- */
+  .form-section{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items:start;
+  }
+  .form-copy p{ color: var(--fog); margin-top:14px; max-width: 42ch;}
+  .form-copy .badges{ display:flex; gap:10px; margin-top:24px; flex-wrap:wrap; }
+  .form-copy .badges span{ font-family:var(--font-mono); font-size:0.76rem; color:var(--lilac); border:1px solid var(--border); border-radius:999px; padding:6px 12px; }
+  form{
+    background: var(--void);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    display:flex; flex-direction:column; gap:16px;
+    box-shadow: var(--glow-lg);
+  }
+  label{ font-size:0.85rem; color: var(--lilac); font-family: var(--font-mono); }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  input{
+    background: var(--ink-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--mist);
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+  }
+  input:focus{ outline:none; border-color: var(--iris); box-shadow: 0 0 0 3px rgba(157,92,255,0.2);}
+  .form-actions{ display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .form-actions .btn{ justify-content:center; width:100%; }
+  .form-note{ font-size:0.82rem; color: var(--fog); text-align:center; transition: color .3s ease; }
+  .form-note.success{ color: var(--mint); }
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top: 1px solid var(--border);
+    padding-block: 32px 40px;
+    display:flex; align-items:center; justify-content:space-between;
+    color: var(--fog); font-size:0.88rem;
+    flex-wrap:wrap; gap:12px;
+  }
+
+  @media (max-width: 900px){
+    .nav-links{ display:none; }
+    .hero{ grid-template-columns: 1fr; padding-block:36px 60px; }
+    .hero-visual{ order:-1; }
+    .formula-grid{ grid-template-columns:1fr; }
+    .pipeline{ grid-template-columns:1fr; gap:22px; }
+    .pipeline::before{ left:34px; right:auto; top:0; bottom:0; width:2px; height:auto; background: linear-gradient(180deg, transparent, var(--border-strong) 10%, var(--border-strong) 90%, transparent); }
+    .pipe-step{ flex-direction:row; text-align:left; align-items:center; }
+    .pipe-num{ margin-bottom:0; margin-right:18px; flex-shrink:0; }
+    .compare-grid{ grid-template-columns:1fr; }
+    .platforms-grid{ grid-template-columns:1fr; }
+    .basics-grid{ grid-template-columns:1fr 1fr; }
+    .otto-section{ grid-template-columns: 1fr; padding:32px; text-align:center;}
+    .otto-figure{ order:-1; }
+    .form-section{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px){
+    .basics-grid{ grid-template-columns: 1fr; }
+    .hero-stats{ gap:20px; }
+    .ratio-seg{ font-size:1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-mesh" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
+<div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="headGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#c9a6ff"/>
+      <stop offset="55%" stop-color="#9d5cff"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </radialGradient>
+    <linearGradient id="tentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9d5cff"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
+      <stop stop-color="#9d5cff"/><stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header id="siteHeader">
+    <nav class="nav">
+      <div class="logo">
+        <svg class="logo-mark" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="16" fill="url(#lg)"/>
+          <path d="M11 12l-4 4 4 4M21 12l4 4-4 4M18 10l-4 12" stroke="#f3eeff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        AI-Оператор
+      </div>
+      <div class="nav-links">
+        <a href="#formula">Формула 80/20</a>
+        <a href="#cycle">Как это работает</a>
+        <a href="#platforms">Платформы</a>
+        <a href="#basics">Кодинг</a>
+      </div>
+      <div class="nav-cta">
+        <a href="#signup" class="btn btn-outline btn-sm">Регистрация</a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <span class="eyebrow">Практический курс нового поколения</span>
+      <h1>AI-<span class="grad">Оператор</span></h1>
+      <p class="tagline">Промпт вместо кода. Контроль там, где это важно.</p>
+      <p class="desc">Управляй нейросетью, контролируй код. Не программист с нуля — а AI-оператор: 80% работы с нейросетью и 20% точечного контроля результата. Этого достаточно, чтобы строить реальные продукты.</p>
+      <div class="hero-cta">
+        <a href="#signup" class="btn btn-primary">Стать AI-оператором</a>
+        <a href="#formula" class="btn btn-outline">Как это работает</a>
+      </div>
+      <div class="hero-stats">
+        <div><b>80%</b><span>управление нейросетью</span></div>
+        <div><b>20%</b><span>контроль кода</span></div>
+        <div><b>5 мин</b><span>тренажёр в день</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <span class="float-chip chip-80">80% промпт</span>
+      <span class="float-chip chip-20">20% код</span>
+      <div class="otto-wrap">
+        <svg viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg" id="ottoHero">
+          <g class="tentacle t1"><path d="M95 175 C80 210, 60 210, 55 245 C52 265, 65 275, 60 292" stroke="url(#tentGrad)" stroke-width="18" stroke-linecap="round" fill="none"/></g>
+          <g class="tentacle t6"><path d="M165 175 C180 210, 200 210, 205 245 C208 265, 195 275, 200 292" stroke="url(#tentGrad)" stroke-width="18" stroke-linecap="round" fill="none"/></g>
+          <g class="tentacle t2"><path d="M110 185 C104 220, 88 225, 90 258 C91 275, 102 280, 98 296" stroke="url(#tentGrad)" stroke-width="16" stroke-linecap="round" fill="none"/></g>
+          <g class="tentacle t5"><path d="M150 185 C156 220, 172 225, 170 258 C169 275, 158 280, 162 296" stroke="url(#tentGrad)" stroke-width="16" stroke-linecap="round" fill="none"/></g>
+          <g class="tentacle t3"><path d="M125 190 C122 225, 112 235, 118 265 C121 280, 130 282, 128 298" stroke="url(#tentGrad)" stroke-width="14" stroke-linecap="round" fill="none"/></g>
+          <g class="tentacle t4"><path d="M135 190 C138 225, 148 235, 142 265 C139 280, 130 282, 132 298" stroke="url(#tentGrad)" stroke-width="14" stroke-linecap="round" fill="none"/></g>
+          <g class="head-group">
+            <ellipse cx="130" cy="120" rx="78" ry="70" fill="url(#headGrad)"/>
+            <line x1="130" y1="52" x2="130" y2="30" stroke="#c9b6ff" stroke-width="3" stroke-linecap="round"/>
+            <circle class="chip-dot" cx="130" cy="26" r="6" fill="#e9d8ff"/>
+            <ellipse cx="70" cy="130" rx="16" ry="10" fill="#7c3aed" opacity="0.4"/>
+            <ellipse cx="190" cy="130" rx="16" ry="10" fill="#7c3aed" opacity="0.4"/>
+            <ellipse cx="98" cy="110" rx="24" ry="28" fill="#f3eeff"/>
+            <ellipse cx="162" cy="110" rx="24" ry="28" fill="#f3eeff"/>
+            <circle class="pupil pupil-l" cx="102" cy="116" r="11" fill="#1a0e33"/>
+            <circle class="pupil pupil-r" cx="166" cy="116" r="11" fill="#1a0e33"/>
+            <circle cx="98" cy="111" r="4" fill="#f3eeff"/>
+            <circle cx="162" cy="111" r="4" fill="#f3eeff"/>
+            <path d="M112 148 Q130 158 148 148" stroke="#4c1d95" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="formula">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Философия курса</span>
+      <h2>Не программист с нуля — <span style="color:var(--iris-light);">AI-оператор</span></h2>
+      <p>Ты не пишешь код построчно с чистого листа. Ты управляешь нейросетью — задаёшь роль, формулируешь задачу, проверяешь качество ответа — и только в 20% случаев сам заходишь в код: почитать структуру, поправить условие, запустить.</p>
+    </div>
+
+    <div data-reveal>
+      <div class="ratio-bar">
+        <div class="ratio-seg seg-80" id="seg80">80%</div>
+        <div class="ratio-seg seg-20" id="seg20">20%</div>
+      </div>
+      <div class="ratio-labels"><span>Промптинг и контроль AI</span><span>Контроль кода</span></div>
+    </div>
+
+    <div class="formula-grid" data-reveal-group>
+      <div class="glass-card formula-card">
+        <span class="pct">80%</span>
+        <h3>Управление нейросетью</h3>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Промптинг: роль, входные данные, задача, ограничения, формат</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Разбор ответа AI — что модель предлагает и почему</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Контроль качества результата перед запуском</li>
+        </ul>
+      </div>
+      <div class="glass-card formula-card minor">
+        <span class="pct">20%</span>
+        <h3>Контроль кода</h3>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--mint)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Чтение структуры проекта и файлов</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--mint)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Точечная правка условий и переменных</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--mint)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Запуск, проверка и ручная доводка параметров</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="cycle">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Ежедневный цикл</span>
+      <h2>Один рабочий пайплайн на каждую задачу</h2>
+      <p>Пять шагов, которые повторяются в любом проекте — от небольшого скрипта до полноценного продукта.</p>
+    </div>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="var(--iris-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Промпт</h3><p>Формулируешь задачу: роль, данные, ограничения, формат ответа.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 4.9L19 9l-4.9 1.9L12 16l-1.9-5.1L5 9l5.1-1.1z" stroke="var(--iris-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="var(--iris-light)"/></svg></div>
+        <h3>Ответ AI</h3><p>Нейросеть генерирует код, план или решение по твоему промпту.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11" stroke="var(--iris-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Проверка структуры</h3><p>Читаешь, что получилось: файлы, логика, соответствие задаче.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" stroke="var(--iris-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Ручная доводка</h3><p>Точечно правишь условие, переменную или параметр в коде.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-num"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 3l14 9-14 9V3z" stroke="var(--iris-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="var(--iris-light)"/></svg></div>
+        <h3>Финальный запуск</h3><p>Запускаешь и проверяешь результат в реальных условиях.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="prompting">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Разбор промптинга</span>
+      <h2>Один и тот же вопрос — два разных результата</h2>
+      <p>Хороший промпт всегда закрывает пять пунктов: роль, входные данные, задача, ограничения, формат ответа.</p>
+    </div>
+    <div class="compare-grid" data-reveal-group>
+      <div class="compare-card compare-bad">
+        <div class="compare-head">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg>
+          ПЛОХО
+        </div>
+        <div class="compare-body">
+          <div class="compare-prompt">Напиши код для сайта, который что-то продаёт, сделай красиво и без ошибок.</div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg><div><b>Роль</b><span>не указана</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg><div><b>Входные данные</b><span>отсутствуют</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg><div><b>Задача</b><span>размытая, «что-то продаёт»</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg><div><b>Ограничения</b><span>нет — стек и рамки неизвестны</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ff7a90" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" stroke="#ff7a90" stroke-width="2" stroke-linecap="round"/></svg><div><b>Формат</b><span>не задан</span></div></div>
+        </div>
+      </div>
+      <div class="compare-card compare-good">
+        <div class="compare-head">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          НОРМАЛЬНО
+        </div>
+        <div class="compare-body">
+          <div class="compare-prompt"><span class="tok-key">Роль:</span> <span class="tok-str">senior frontend-разработчик.</span>
+<span class="tok-key">Данные:</span> <span class="tok-str">каркас index.html (во вложении).</span>
+<span class="tok-key">Задача:</span> <span class="tok-str">добавить секцию отзывов с каруселью.</span>
+<span class="tok-key">Ограничения:</span> <span class="tok-str">без сторонних библиотек, палитру не менять.</span>
+<span class="tok-key">Формат:</span> <span class="tok-str">полный код секции + CSS, без сокращений.</span></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Роль</b><span>senior frontend-разработчик</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Входные данные</b><span>приложен реальный файл</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Задача</b><span>конкретная и проверяемая</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Ограничения</b><span>стек и рамки зафиксированы</span></div></div>
+          <div class="compare-row"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--mint)" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="var(--mint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><b>Формат</b><span>явно описан результат</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="platforms">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Две платформы обучения</span>
+      <h2>Учись в кармане и разрабатывай на ПК</h2>
+      <p>Мобильный тренажёр держит навык в форме каждый день, а на компьютере ты собираешь настоящие проекты.</p>
+    </div>
+    <div class="platforms-grid" data-reveal-group>
+      <div class="glass-card spot-card platform-card">
+        <div class="platform-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="6" y="2" width="12" height="20" rx="2.5" stroke="var(--iris-light)" stroke-width="1.8"/><line x1="6" y1="18" x2="18" y2="18" stroke="var(--iris-light)" stroke-width="1.8"/></svg></div>
+        <div>
+          <span class="sub">Смартфон</span>
+          <h3>Тренажёр в кармане</h3>
+        </div>
+        <p style="color:var(--fog); font-size:0.94rem;">5 минут в день — этого хватает, чтобы не терять форму между сессиями за компьютером.</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Конструктор промптов из блоков</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Чтение кода на ходу</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Промпт-дуэль с таймером</li>
+        </ul>
+      </div>
+      <div class="glass-card spot-card platform-card">
+        <div class="platform-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="13" rx="2" stroke="var(--iris-light)" stroke-width="1.8"/><line x1="8" y1="21" x2="16" y2="21" stroke="var(--iris-light)" stroke-width="1.8"/><line x1="12" y1="16" x2="12" y2="21" stroke="var(--iris-light)" stroke-width="1.8"/></svg></div>
+        <div>
+          <span class="sub">ПК</span>
+          <h3>Реальная разработка</h3>
+        </div>
+        <p style="color:var(--fog); font-size:0.94rem;">Полноценная связка редактора, AI-ассистента и терминала — как в настоящей работе.</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Claude Code / ChatGPT в связке</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Консоль и терминал</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="var(--iris-light)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Проекты в портфолио</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="basics">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Минимальный багаж кодинга</span>
+      <h2>Всего 4 темы, чтобы читать код уверенно</h2>
+      <p>Наведи или нажми на карточку — покажем, зачем это нужно.</p>
+    </div>
+    <div class="basics-grid" data-reveal-group>
+      <div class="glass-card spot-card basics-card" tabindex="0">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M8 3H6a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2M16 3h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2" stroke="var(--lilac)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Типы данных / JSON</h3>
+        <div class="basics-more">{ "id": 1, "active": true }<br>Строки, числа, списки, объекты — база любого промпта и ответа.</div>
+      </div>
+      <div class="glass-card spot-card basics-card" tabindex="0">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 2l4 4-4 4M7 22l-4-4 4-4M3 6h13a4 4 0 0 1 4 4v1M21 18H8a4 4 0 0 1-4-4v-1" stroke="var(--lilac)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Условия / Циклы</h3>
+        <div class="basics-more">if / for / while — читаешь логику, а не только текст кода.</div>
+      </div>
+      <div class="glass-card spot-card basics-card" tabindex="0">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="10" r="4" stroke="var(--lilac)" stroke-width="1.8"/><path d="M8 10a4 4 0 1 1 8 0M6 14h12M9 18h6" stroke="var(--lilac)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Разбор Traceback</h3>
+        <div class="basics-more">Ошибка снизу вверх: тип, строка, причина — и что просить у AI.</div>
+      </div>
+      <div class="glass-card spot-card basics-card" tabindex="0">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 17l6-6-6-6M12 19h8" stroke="var(--lilac)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Окружение / .env / pip</h3>
+        <div class="basics-more">Ключи, переменные и зависимости — чтобы код запускался не только «у тебя».</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="otto-section" data-reveal>
+      <div class="otto-figure">
+        <div class="otto-wrap">
+          <svg viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg" id="ottoMeet">
+            <g class="tentacle t1"><path d="M95 175 C80 210, 60 210, 55 245 C52 265, 65 275, 60 292" stroke="url(#tentGrad)" stroke-width="18" stroke-linecap="round" fill="none"/></g>
+            <g class="tentacle t6"><path d="M165 175 C180 210, 200 210, 205 245 C208 265, 195 275, 200 292" stroke="url(#tentGrad)" stroke-width="18" stroke-linecap="round" fill="none"/></g>
+            <g class="tentacle t2"><path d="M110 185 C104 220, 88 225, 90 258 C91 275, 102 280, 98 296" stroke="url(#tentGrad)" stroke-width="16" stroke-linecap="round" fill="none"/></g>
+            <g class="tentacle t5"><path d="M150 185 C156 220, 172 225, 170 258 C169 275, 158 280, 162 296" stroke="url(#tentGrad)" stroke-width="16" stroke-linecap="round" fill="none"/></g>
+            <g class="tentacle t3"><path d="M125 190 C122 225, 112 235, 118 265 C121 280, 130 282, 128 298" stroke="url(#tentGrad)" stroke-width="14" stroke-linecap="round" fill="none"/></g>
+            <g class="tentacle t4"><path d="M135 190 C138 225, 148 235, 142 265 C139 280, 130 282, 132 298" stroke="url(#tentGrad)" stroke-width="14" stroke-linecap="round" fill="none"/></g>
+            <g class="head-group">
+              <ellipse cx="130" cy="120" rx="78" ry="70" fill="url(#headGrad)"/>
+              <line x1="130" y1="52" x2="130" y2="30" stroke="#c9b6ff" stroke-width="3" stroke-linecap="round"/>
+              <circle class="chip-dot" cx="130" cy="26" r="6" fill="#e9d8ff"/>
+              <ellipse cx="70" cy="130" rx="16" ry="10" fill="#7c3aed" opacity="0.4"/>
+              <ellipse cx="190" cy="130" rx="16" ry="10" fill="#7c3aed" opacity="0.4"/>
+              <ellipse cx="98" cy="110" rx="24" ry="28" fill="#f3eeff"/>
+              <ellipse cx="162" cy="110" rx="24" ry="28" fill="#f3eeff"/>
+              <circle class="pupil pupil-l" cx="102" cy="116" r="11" fill="#1a0e33"/>
+              <circle class="pupil pupil-r" cx="166" cy="116" r="11" fill="#1a0e33"/>
+              <circle cx="98" cy="111" r="4" fill="#f3eeff"/>
+              <circle cx="162" cy="111" r="4" fill="#f3eeff"/>
+              <path d="M112 148 Q130 158 148 148" stroke="#4c1d95" stroke-width="3" stroke-linecap="round" fill="none"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <span class="eyebrow">Окто на связи</span>
+        <div class="bubble" style="margin-top:18px; max-width:46ch;">
+          «Промпт — это твой инструмент. Код — твоя проверка. Управляй нейросетью, контролируй код. Погнали?»
+          <span>— Окто, талисман AI-Оператора</span>
+        </div>
+        <p style="margin-top:16px; color:var(--fog); font-size:0.9rem;">Наведи курсор на Окто — он следит за тобой глазами.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="signup">
+    <div class="form-section">
+      <div class="form-copy" data-reveal>
+        <span class="eyebrow">Начни сейчас</span>
+        <h2 style="margin-top:14px;">Стань AI-оператором</h2>
+        <p>Регистрация займёт меньше минуты. Дальше — ежедневный тренажёр и первые проекты со связкой нейросети и кода.</p>
+        <div class="badges">
+          <span>Промптинг</span><span>Контроль кода</span><span>Реальные проекты</span>
+        </div>
+      </div>
+      <form id="signupForm" data-reveal>
+        <div class="field">
+          <label for="name">Имя</label>
+          <input id="name" type="text" placeholder="Как к тебе обращаться" required>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Пароль</label>
+          <input id="password" type="password" placeholder="Минимум 8 символов" minlength="8" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Начать обучение</button>
+          <button type="button" id="downloadBtn" class="btn btn-outline">Скачать тренажёр</button>
+          <p class="form-note" id="formNote">Регистрируясь, ты соглашаешься с условиями использования.</p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <span>AI-Оператор</span>
+    <span>© 2026. Все права защищены.</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var header = document.getElementById('siteHeader');
+  window.addEventListener('scroll', function(){
+    header.classList.toggle('scrolled', window.scrollY > 8);
+  }, { passive: true });
+
+  var revealTargets = document.querySelectorAll('[data-reveal], [data-reveal-group], .pipe-step, .ratio-seg');
+  if('IntersectionObserver' in window && !reduceMotion){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    revealTargets.forEach(function(el){ io.observe(el); });
+  } else {
+    revealTargets.forEach(function(el){ el.classList.add('is-visible'); });
+  }
+
+  document.querySelectorAll('.spot-card').forEach(function(card){
+    card.addEventListener('mousemove', function(e){
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+
+  var glow = document.getElementById('cursorGlow');
+  if(!reduceMotion && window.matchMedia('(pointer: fine)').matches){
+    window.addEventListener('mousemove', function(e){
+      glow.style.opacity = '1';
+      glow.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px) translate(-50%,-50%)';
+    }, { passive: true });
+    window.addEventListener('mouseleave', function(){ glow.style.opacity = '0'; });
+  }
+
+  if(!reduceMotion){
+    var pupils = document.querySelectorAll('.pupil');
+    document.addEventListener('mousemove', function(e){
+      pupils.forEach(function(p){
+        var r = p.getBoundingClientRect();
+        var cx = r.left + r.width/2, cy = r.top + r.height/2;
+        var dx = e.clientX - cx, dy = e.clientY - cy;
+        var dist = Math.min(3, Math.hypot(dx, dy) / 40);
+        var ang = Math.atan2(dy, dx);
+        p.style.transform = 'translate(' + (Math.cos(ang)*dist) + 'px,' + (Math.sin(ang)*dist) + 'px)';
+      });
+    }, { passive: true });
+  }
+
+  document.getElementById('signupForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var note = document.getElementById('formNote');
+    note.textContent = 'Готово! Окто уже на связи. Добро пожаловать в AI-Оператор, ' + (document.getElementById('name').value || 'друг') + '.';
+    note.classList.add('success');
+  });
+  document.getElementById('downloadBtn').addEventListener('click', function(){
+    var note = document.getElementById('formNote');
+    note.textContent = 'Скачивание тренажёра доступно после регистрации на платформе.';
+    note.classList.remove('success');
+  });
+})();
+</script>
+</body>
+</html>
